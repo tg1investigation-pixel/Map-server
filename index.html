@@ -1,0 +1,1446 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Department Surveillance Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;900&display=swap');
+        
+        body {
+            box-sizing: border-box;
+            background: linear-gradient(135deg, #0f1419, #1a1d29, #2c3e50);
+            color: #ffffff;
+            font-family: 'Cairo', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            direction: rtl;
+        }
+        
+        html {
+            height: 100%;
+        }
+        
+        .navbar {
+            background: linear-gradient(135deg, #1e3c72, #2a5298, #f39c12);
+            border-bottom: 3px solid #f39c12;
+            box-shadow: 0 4px 20px rgba(243, 156, 18, 0.3);
+            backdrop-filter: blur(10px);
+        }
+        
+        .navbar-brand {
+            font-weight: bold;
+            font-size: 1.2rem;
+            color: #ffffff !important;
+        }
+        
+        .main-container {
+            display: flex;
+            height: calc(100% - 76px);
+            background-color: #1a1d29;
+        }
+        
+        .sidebar {
+            width: 300px;
+            background: linear-gradient(180deg, #1e3c72, #2a5298, #34495e);
+            border-left: 3px solid #f39c12;
+            padding: 20px;
+            overflow-y: auto;
+            box-shadow: -4px 0 20px rgba(243, 156, 18, 0.2);
+            backdrop-filter: blur(15px);
+        }
+        
+        .map-container {
+            flex: 1;
+            position: relative;
+            background-color: #2c3e50;
+        }
+        
+        #map {
+            height: 100%;
+            width: 100%;
+        }
+        
+        .camera-list {
+            margin-bottom: 30px;
+        }
+        
+        .camera-item {
+            background: linear-gradient(135deg, rgba(30, 60, 114, 0.8), rgba(42, 82, 152, 0.6));
+            border: 2px solid #f39c12;
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 12px;
+            cursor: pointer;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            position: relative;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(10px);
+        }
+        
+        .camera-item:hover {
+            background: linear-gradient(135deg, rgba(243, 156, 18, 0.3), rgba(30, 60, 114, 0.8));
+            transform: translateX(-10px) translateY(-5px);
+            box-shadow: 0 15px 35px rgba(243, 156, 18, 0.4);
+            border-color: #3498db;
+        }
+        
+        .camera-name {
+            font-weight: 700;
+            color: #f39c12;
+            margin-bottom: 6px;
+            font-size: 1rem;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+        
+        .camera-status {
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .status-online {
+            color: #27ae60;
+        }
+        
+        .status-offline {
+            color: #e74c3c;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #f39c12, #e67e22);
+            border: none;
+            border-radius: 10px;
+            padding: 10px 20px;
+            font-weight: 600;
+            font-family: 'Cairo', sans-serif;
+            font-size: 0.9rem;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            box-shadow: 0 4px 15px rgba(243, 156, 18, 0.3);
+        }
+        
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #e67e22, #d35400);
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(243, 156, 18, 0.5);
+        }
+        
+        .btn-success {
+            background: linear-gradient(135deg, #27ae60, #229954);
+            border: none;
+        }
+        
+        .btn-danger {
+            background: linear-gradient(135deg, #e74c3c, #c0392b);
+            border: none;
+        }
+        
+        .modal-content {
+            background-color: #2c3e50;
+            border: 2px solid #3498db;
+            border-radius: 10px;
+        }
+        
+        .modal-header {
+            border-bottom: 1px solid #3498db;
+            background: linear-gradient(135deg, #34495e, #2c3e50);
+        }
+        
+        .modal-title {
+            color: #3498db;
+            font-weight: bold;
+        }
+        
+        .form-control {
+            background-color: #34495e;
+            border: 1px solid #3498db;
+            color: #ffffff;
+            border-radius: 6px;
+        }
+        
+        .form-control:focus {
+            background-color: #34495e;
+            border-color: #52c4f0;
+            color: #ffffff;
+            box-shadow: 0 0 0 0.2rem rgba(52, 152, 219, 0.25);
+        }
+        
+        .form-label {
+            color: #3498db;
+            font-weight: 500;
+        }
+        
+        .video-container {
+            background-color: #000;
+            border-radius: 8px;
+            overflow: hidden;
+            position: relative;
+        }
+        
+        .video-placeholder {
+            background: linear-gradient(45deg, #2c3e50, #34495e);
+            color: #bdc3c7;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 300px;
+            font-size: 1.2rem;
+            border: 2px dashed #3498db;
+            border-radius: 8px;
+        }
+        
+        .controls-panel {
+            background: rgba(44, 62, 80, 0.9);
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+        }
+        
+        .footer {
+            background: linear-gradient(135deg, #2c3e50, #34495e);
+            color: #bdc3c7;
+            text-align: center;
+            padding: 10px;
+            border-top: 2px solid #3498db;
+            font-size: 0.9rem;
+        }
+        
+        .leaflet-popup-content-wrapper {
+            background-color: #2c3e50;
+            color: #ffffff;
+            border-radius: 8px;
+            border: 2px solid #3498db;
+        }
+        
+        .leaflet-popup-content {
+            color: #ffffff;
+        }
+        
+        .leaflet-popup-tip {
+            background-color: #2c3e50;
+        }
+        
+        .camera-popup {
+            text-align: center;
+            padding: 10px;
+        }
+        
+        .camera-popup h6 {
+            color: #3498db;
+            margin-bottom: 10px;
+        }
+        
+        .admin-section {
+            border-top: 2px solid #3498db;
+            padding-top: 20px;
+            margin-top: 20px;
+        }
+        
+        .section-title {
+            color: #3498db;
+            font-size: 1rem;
+            font-weight: bold;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .stats-card {
+            background: linear-gradient(135deg, rgba(30, 60, 114, 0.7), rgba(42, 82, 152, 0.5));
+            border: 2px solid #f39c12;
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 15px;
+            text-align: center;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+        }
+        
+        .stats-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(243, 156, 18, 0.3);
+        }
+        
+        .stats-number {
+            font-size: 2rem;
+            font-weight: 900;
+            color: #f39c12;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+            font-family: 'Cairo', sans-serif;
+        }
+        
+        .stats-label {
+            color: #ecf0f1;
+            font-size: 0.9rem;
+            font-weight: 600;
+            font-family: 'Cairo', sans-serif;
+        }
+        
+        /* Camera marker animations */
+        .camera-marker {
+            animation: pulse 2s infinite;
+        }
+        
+        .pulse-online {
+            animation: pulseGreen 2s infinite;
+        }
+        
+        .pulse-offline {
+            animation: pulseRed 3s infinite;
+        }
+        
+        @keyframes pulseGreen {
+            0% {
+                box-shadow: 0 0 0 0 rgba(39, 174, 96, 0.7);
+            }
+            70% {
+                box-shadow: 0 0 0 10px rgba(39, 174, 96, 0);
+            }
+            100% {
+                box-shadow: 0 0 0 0 rgba(39, 174, 96, 0);
+            }
+        }
+        
+        @keyframes pulseRed {
+            0% {
+                box-shadow: 0 0 0 0 rgba(231, 76, 60, 0.7);
+            }
+            70% {
+                box-shadow: 0 0 0 10px rgba(231, 76, 60, 0);
+            }
+            100% {
+                box-shadow: 0 0 0 0 rgba(231, 76, 60, 0);
+            }
+        }
+        
+        /* Custom scrollbar */
+        .sidebar::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        .sidebar::-webkit-scrollbar-track {
+            background: rgba(44, 62, 80, 0.3);
+            border-radius: 4px;
+        }
+        
+        .sidebar::-webkit-scrollbar-thumb {
+            background: linear-gradient(135deg, #3498db, #f39c12);
+            border-radius: 4px;
+        }
+        
+        .sidebar::-webkit-scrollbar-thumb:hover {
+            background: linear-gradient(135deg, #2980b9, #e67e22);
+        }
+        
+        /* Map controls */
+        .map-controls {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            z-index: 1000;
+            background: linear-gradient(135deg, rgba(30, 60, 114, 0.9), rgba(42, 82, 152, 0.8));
+            border: 2px solid #f39c12;
+            border-radius: 12px;
+            padding: 12px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(15px);
+        }
+        
+        .map-selector {
+            background: transparent;
+            border: 2px solid #f39c12;
+            color: #ffffff;
+            border-radius: 8px;
+            padding: 6px 12px;
+            font-family: 'Cairo', sans-serif;
+            font-weight: 600;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .map-selector:focus {
+            outline: none;
+            border-color: #3498db;
+            box-shadow: 0 0 10px rgba(52, 152, 219, 0.5);
+        }
+        
+        .map-selector option {
+            background-color: #2c3e50;
+            color: #ffffff;
+            font-family: 'Cairo', sans-serif;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#" style="font-family: 'Cairo', sans-serif; font-weight: 700;">
+                <i class="fas fa-shield-alt ms-2"></i>
+                لوحة مراقبة الكاميرات الأمنية
+            </a>
+            <div class="navbar-nav me-auto">
+                <span class="navbar-text ms-3" style="font-family: 'Cairo', sans-serif; font-weight: 600;">
+                    <i class="fas fa-user ms-1"></i>
+                    <span id="currentUser">المشرف الأمني</span>
+                </span>
+                <button class="btn btn-outline-warning btn-sm ms-2" onclick="showSettings()" style="font-family: 'Cairo', sans-serif; font-weight: 600;">
+                    <i class="fas fa-cogs ms-1"></i>
+                    الإعدادات
+                </button>
+                <button class="btn btn-outline-light btn-sm" onclick="logout()" style="font-family: 'Cairo', sans-serif; font-weight: 600;">
+                    <i class="fas fa-sign-out-alt ms-1"></i>
+                    تسجيل خروج
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Container -->
+    <div class="main-container">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <!-- Statistics -->
+            <div class="stats-card">
+                <div class="stats-number" id="totalCameras">8</div>
+                <div class="stats-label">إجمالي الكاميرات</div>
+            </div>
+            <div class="row">
+                <div class="col-6">
+                    <div class="stats-card">
+                        <div class="stats-number status-online" id="onlineCameras">6</div>
+                        <div class="stats-label">متصلة</div>
+                    </div>
+                </div>
+                <div class="col-6">
+                    <div class="stats-card">
+                        <div class="stats-number status-offline" id="offlineCameras">2</div>
+                        <div class="stats-label">منقطعة</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Camera List -->
+            <div class="section-title" style="font-family: 'Cairo', sans-serif; font-weight: 700;">
+                <i class="fas fa-video"></i>
+                مواقع الكاميرات
+            </div>
+            <div class="camera-list" id="cameraList">
+                <!-- Camera items will be populated by JavaScript -->
+            </div>
+
+            <!-- Admin Controls -->
+            <div class="admin-section">
+                <div class="section-title" style="font-family: 'Cairo', sans-serif; font-weight: 700;">
+                    <i class="fas fa-cog"></i>
+                    لوحة التحكم
+                </div>
+                <button class="btn btn-success w-100 mb-3" onclick="showAddCameraModal()" style="font-family: 'Cairo', sans-serif; font-weight: 600;">
+                    <i class="fas fa-plus ms-2"></i>
+                    إضافة كاميرا جديدة
+                </button>
+                <button class="btn btn-primary w-100 mb-3" onclick="refreshMap()" style="font-family: 'Cairo', sans-serif; font-weight: 600;">
+                    <i class="fas fa-sync-alt ms-2"></i>
+                    تحديث الخريطة
+                </button>
+                <button class="btn btn-warning w-100 mb-3" onclick="exportData()" style="font-family: 'Cairo', sans-serif; font-weight: 600;">
+                    <i class="fas fa-download ms-2"></i>
+                    تصدير البيانات
+                </button>
+            </div>
+        </div>
+
+        <!-- Map Container -->
+        <div class="map-container">
+            <!-- Map Controls -->
+            <div class="map-controls">
+                <label style="color: #f39c12; font-family: 'Cairo', sans-serif; font-weight: 600; font-size: 0.85rem; margin-bottom: 6px; display: block;">نوع الخريطة:</label>
+                <select class="map-selector" id="mapTypeSelector" onchange="changeMapType()">
+                    <option value="osm">الخريطة العادية</option>
+                    <option value="satellite">صور الأقمار الصناعية</option>
+                    <option value="dark">الوضع المظلم</option>
+                    <option value="terrain">خريطة التضاريس</option>
+                    <option value="watercolor">الألوان المائية</option>
+                </select>
+            </div>
+            <div id="map"></div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="footer" style="font-family: 'Cairo', sans-serif; font-weight: 600;">
+        <i class="fas fa-server ms-2"></i>
+        الخادم يعمل على الشبكة الداخلية | آخر تحديث: <span id="lastUpdate"></span>
+    </div>
+
+    <!-- Camera Feed Modal -->
+    <div class="modal fade" id="cameraModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="cameraModalTitle" style="font-family: 'Cairo', sans-serif; font-weight: 700;">
+                        <i class="fas fa-video me-2"></i>
+                        عرض الكاميرا
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="video-container" id="videoContainer">
+                        <div class="video-placeholder">
+                            <div>
+                                <i class="fas fa-video fa-3x mb-3"></i>
+                                <div style="font-family: 'Cairo', sans-serif; font-weight: 600;">جاري تحميل البث المباشر...</div>
+                                <small class="text-muted">رابط البث: <span id="streamUrl"></span></small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="controls-panel">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <button class="btn btn-primary me-2" onclick="toggleFullscreen()" style="font-family: 'Cairo', sans-serif; font-weight: 600;">
+                                    <i class="fas fa-expand me-1"></i>
+                                    ملء الشاشة
+                                </button>
+                                <button class="btn btn-secondary" onclick="refreshFeed()" style="font-family: 'Cairo', sans-serif; font-weight: 600;">
+                                    <i class="fas fa-sync-alt me-1"></i>
+                                    تحديث
+                                </button>
+                                <button class="btn btn-warning me-2" onclick="recordFeed()" style="font-family: 'Cairo', sans-serif; font-weight: 600;">
+                                    <i class="fas fa-record-vinyl me-1"></i>
+                                    تسجيل
+                                </button>
+                                <button class="btn btn-info" onclick="takeSnapshot()" style="font-family: 'Cairo', sans-serif; font-weight: 600;">
+                                    <i class="fas fa-camera me-1"></i>
+                                    لقطة
+                                </button>
+                            </div>
+                            <div class="col-md-6 text-end">
+                                <small class="text-muted" style="font-family: 'Cairo', sans-serif;">
+                                    <i class="fas fa-clock me-1"></i>
+                                    <span id="feedTimestamp"></span>
+                                </small>
+                                <br>
+                                <small class="text-success" id="recordingStatus" style="display: none; font-family: 'Cairo', sans-serif;">
+                                    <i class="fas fa-circle me-1"></i>
+                                    جاري التسجيل...
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Camera Modal -->
+    <div class="modal fade" id="addCameraModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" style="font-family: 'Cairo', sans-serif; font-weight: 700;">
+                        <i class="fas fa-plus me-2"></i>
+                        إضافة كاميرا جديدة
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="addCameraForm">
+                        <div class="mb-3">
+                            <label for="cameraName" class="form-label" style="font-family: 'Cairo', sans-serif; font-weight: 600;">اسم الكاميرا</label>
+                            <input type="text" class="form-control" id="cameraName" required placeholder="أدخل اسم الكاميرا" style="font-family: 'Cairo', sans-serif;">
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <label for="cameraLat" class="form-label" style="font-family: 'Cairo', sans-serif; font-weight: 600;">خط العرض</label>
+                                <input type="number" class="form-control" id="cameraLat" step="0.000001" required style="font-family: 'Cairo', sans-serif;">
+                            </div>
+                            <div class="col-md-6">
+                                <label for="cameraLng" class="form-label" style="font-family: 'Cairo', sans-serif; font-weight: 600;">خط الطول</label>
+                                <input type="number" class="form-control" id="cameraLng" step="0.000001" required style="font-family: 'Cairo', sans-serif;">
+                            </div>
+                        </div>
+                        <div class="mb-3 mt-3">
+                            <label for="cameraUrl" class="form-label" style="font-family: 'Cairo', sans-serif; font-weight: 600;">رابط البث</label>
+                            <input type="url" class="form-control" id="cameraUrl" placeholder="rtsp://camera-ip:554/stream" style="font-family: 'Cairo', sans-serif;">
+                        </div>
+                        <div class="mb-3">
+                            <label for="cameraDescription" class="form-label" style="font-family: 'Cairo', sans-serif; font-weight: 600;">الوصف</label>
+                            <textarea class="form-control" id="cameraDescription" rows="2" placeholder="وصف موقع الكاميرا" style="font-family: 'Cairo', sans-serif;"></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label for="cameraZone" class="form-label" style="font-family: 'Cairo', sans-serif; font-weight: 600;">المنطقة</label>
+                            <select class="form-control" id="cameraZone" style="font-family: 'Cairo', sans-serif;">
+                                <option value="entrance">المداخل والمخارج</option>
+                                <option value="parking">مواقف السيارات</option>
+                                <option value="interior">المناطق الداخلية</option>
+                                <option value="perimeter">المحيط الخارجي</option>
+                                <option value="special">المناطق الخاصة</option>
+                            </select>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" style="font-family: 'Cairo', sans-serif; font-weight: 600;">إلغاء</button>
+                    <button type="button" class="btn btn-success" onclick="addCamera()" style="font-family: 'Cairo', sans-serif; font-weight: 600;">
+                        <i class="fas fa-save me-1"></i>
+                        حفظ الكاميرا
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Login Modal -->
+    <div class="modal fade" id="loginModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header text-center">
+                    <h4 class="modal-title w-100" style="font-family: 'Cairo', sans-serif; font-weight: 700;">
+                        <i class="fas fa-shield-alt me-2"></i>
+                        تسجيل دخول النظام الأمني
+                    </h4>
+                </div>
+                <div class="modal-body">
+                    <form id="loginForm">
+                        <div class="text-center mb-4">
+                            <i class="fas fa-user-shield fa-4x text-primary"></i>
+                            <p class="mt-3 text-muted" style="font-family: 'Cairo', sans-serif; font-weight: 600;">
+                                يرجى إدخال بيانات الاعتماد للوصول إلى نظام مراقبة الكاميرات
+                            </p>
+                        </div>
+                        <div class="mb-3">
+                            <label for="username" class="form-label" style="font-family: 'Cairo', sans-serif; font-weight: 600;">
+                                <i class="fas fa-user me-2"></i>اسم المستخدم
+                            </label>
+                            <input type="text" class="form-control" id="username" required placeholder="أدخل اسم المستخدم" style="font-family: 'Cairo', sans-serif;">
+                        </div>
+                        <div class="mb-3">
+                            <label for="password" class="form-label" style="font-family: 'Cairo', sans-serif; font-weight: 600;">
+                                <i class="fas fa-lock me-2"></i>كلمة المرور
+                            </label>
+                            <input type="password" class="form-control" id="password" required placeholder="أدخل كلمة المرور" style="font-family: 'Cairo', sans-serif;">
+                        </div>
+                        <div class="mb-3">
+                            <label for="userRole" class="form-label" style="font-family: 'Cairo', sans-serif; font-weight: 600;">
+                                <i class="fas fa-id-badge me-2"></i>المستوى الأمني
+                            </label>
+                            <select class="form-control" id="userRole" style="font-family: 'Cairo', sans-serif;">
+                                <option value="admin">مشرف النظام</option>
+                                <option value="operator">مشغل الكاميرات</option>
+                                <option value="viewer">مراقب</option>
+                            </select>
+                        </div>
+                        <div class="alert alert-danger" id="loginError" style="display: none; font-family: 'Cairo', sans-serif; font-weight: 600;">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            بيانات الدخول غير صحيحة. يرجى المحاولة مرة أخرى.
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary w-100" onclick="performLogin()" style="font-family: 'Cairo', sans-serif; font-weight: 600;">
+                        <i class="fas fa-sign-in-alt me-2"></i>
+                        دخول النظام
+                    </button>
+                </div>
+                <div class="modal-footer border-top-0 pt-0">
+                    <small class="text-muted w-100 text-center" style="font-family: 'Cairo', sans-serif;">
+                        للاختبار: admin / admin123 | operator / op123 | viewer / view123
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div class="modal fade" id="settingsModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" style="font-family: 'Cairo', sans-serif; font-weight: 700;">
+                        <i class="fas fa-cogs me-2"></i>
+                        إعدادات النظام
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6 style="font-family: 'Cairo', sans-serif; font-weight: 700;">إعدادات العرض</h6>
+                            <div class="mb-3">
+                                <label class="form-label" style="font-family: 'Cairo', sans-serif;">معدل التحديث (ثانية)</label>
+                                <input type="number" class="form-control" id="refreshRate" value="30" min="5" max="300">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label" style="font-family: 'Cairo', sans-serif;">جودة البث</label>
+                                <select class="form-control" id="streamQuality">
+                                    <option value="high">عالية</option>
+                                    <option value="medium" selected>متوسطة</option>
+                                    <option value="low">منخفضة</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <h6 style="font-family: 'Cairo', sans-serif; font-weight: 700;">إعدادات التنبيهات</h6>
+                            <div class="form-check mb-2">
+                                <input class="form-check-input" type="checkbox" id="soundAlerts" checked>
+                                <label class="form-check-label" style="font-family: 'Cairo', sans-serif;">تنبيهات صوتية</label>
+                            </div>
+                            <div class="form-check mb-2">
+                                <input class="form-check-input" type="checkbox" id="emailAlerts" checked>
+                                <label class="form-check-label" style="font-family: 'Cairo', sans-serif;">تنبيهات بريد إلكتروني</label>
+                            </div>
+                            <div class="form-check mb-2">
+                                <input class="form-check-input" type="checkbox" id="motionDetection" checked>
+                                <label class="form-check-label" style="font-family: 'Cairo', sans-serif;">كشف الحركة</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" style="font-family: 'Cairo', sans-serif;">إلغاء</button>
+                    <button type="button" class="btn btn-primary" onclick="saveSettings()" style="font-family: 'Cairo', sans-serif;">
+                        <i class="fas fa-save me-1"></i>حفظ الإعدادات
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    
+    <script>
+        // Sample camera data (in production, this would come from your database)
+        let cameras = [
+            {
+                id: 1,
+                name: "البوابة الرئيسية",
+                lat: 30.0444,
+                lng: 31.2357,
+                streamUrl: "rtsp://192.168.1.101:554/stream1",
+                status: "online",
+                description: "مراقبة المدخل الرئيسي",
+                zone: "entrance"
+            },
+            {
+                id: 2,
+                name: "موقف السيارات الشمالي",
+                lat: 30.0454,
+                lng: 31.2367,
+                streamUrl: "rtsp://192.168.1.102:554/stream1",
+                status: "online",
+                description: "مراقبة موقف السيارات الشمالي",
+                zone: "parking"
+            },
+            {
+                id: 3,
+                name: "صالة الاستقبال",
+                lat: 30.0434,
+                lng: 31.2347,
+                streamUrl: "rtsp://192.168.1.103:554/stream1",
+                status: "offline",
+                description: "مراقبة صالة الاستقبال الداخلية",
+                zone: "interior"
+            },
+            {
+                id: 4,
+                name: "المخرج الخلفي",
+                lat: 30.0424,
+                lng: 31.2337,
+                streamUrl: "rtsp://192.168.1.104:554/stream1",
+                status: "online",
+                description: "أمان المخرج الخلفي",
+                zone: "entrance"
+            },
+            {
+                id: 5,
+                name: "منظر الشارع الشرقي",
+                lat: 30.0464,
+                lng: 31.2377,
+                streamUrl: "rtsp://192.168.1.105:554/stream1",
+                status: "online",
+                description: "مراقبة الشارع الشرقي",
+                zone: "perimeter"
+            },
+            {
+                id: 6,
+                name: "غرفة الأدلة",
+                lat: 30.0414,
+                lng: 31.2327,
+                streamUrl: "rtsp://192.168.1.106:554/stream1",
+                status: "online",
+                description: "أمان مخزن الأدلة",
+                zone: "special"
+            },
+            {
+                id: 7,
+                name: "جناح التحقيق",
+                lat: 30.0404,
+                lng: 31.2317,
+                streamUrl: "rtsp://192.168.1.107:554/stream1",
+                status: "offline",
+                description: "ممر غرف المقابلات",
+                zone: "interior"
+            },
+            {
+                id: 8,
+                name: "المحيط الجنوبي",
+                lat: 30.0394,
+                lng: 31.2307,
+                streamUrl: "rtsp://192.168.1.108:554/stream1",
+                status: "online",
+                description: "سياج المحيط الجنوبي",
+                zone: "perimeter"
+            }
+        ];
+
+        let map;
+        let markers = [];
+        let currentCamera = null;
+        let currentTileLayer = null;
+        let isRecording = false;
+        let recordingInterval = null;
+        let currentUser = null;
+        let userPermissions = {
+            admin: ['view', 'add', 'edit', 'delete', 'settings', 'export'],
+            operator: ['view', 'add', 'edit', 'export'],
+            viewer: ['view']
+        };
+
+        // Authentication credentials (in production, this would be handled by backend)
+        const validCredentials = {
+            'admin': { password: 'admin123', role: 'admin', name: 'مدير النظام' },
+            'operator': { password: 'op123', role: 'operator', name: 'مشغل الكاميرات' },
+            'viewer': { password: 'view123', role: 'viewer', name: 'مراقب النظام' }
+        };
+
+        // Map types configuration
+        const mapTypes = {
+            osm: {
+                url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+                attribution: '© OpenStreetMap contributors'
+            },
+            satellite: {
+                url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+                attribution: '© Esri'
+            },
+            dark: {
+                url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+                attribution: '© CartoDB'
+            },
+            terrain: {
+                url: 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',
+                attribution: '© OpenTopoMap'
+            },
+            watercolor: {
+                url: 'https://stamen-tiles-{s}.a.ssl.fastly.net/watercolor/{z}/{x}/{y}.jpg',
+                attribution: '© Stamen Design'
+            }
+        };
+
+        // Initialize the map
+        function initMap() {
+            // Center on Cairo district (example coordinates)
+            map = L.map('map').setView([30.0444, 31.2357], 16);
+
+            // Add default OpenStreetMap tiles
+            currentTileLayer = L.tileLayer(mapTypes.osm.url, {
+                attribution: mapTypes.osm.attribution
+            }).addTo(map);
+
+            // Add cameras to map
+            addCamerasToMap();
+        }
+
+        // Change map type
+        function changeMapType() {
+            const selectedType = document.getElementById('mapTypeSelector').value;
+            const mapConfig = mapTypes[selectedType];
+            
+            if (currentTileLayer) {
+                map.removeLayer(currentTileLayer);
+            }
+            
+            currentTileLayer = L.tileLayer(mapConfig.url, {
+                attribution: mapConfig.attribution
+            }).addTo(map);
+        }
+
+        // Add camera markers to map
+        function addCamerasToMap() {
+            // Clear existing markers
+            markers.forEach(marker => map.removeLayer(marker));
+            markers = [];
+
+            cameras.forEach(camera => {
+                // Create custom icon based on status
+                const iconColor = camera.status === 'online' ? '#27ae60' : '#e74c3c';
+                const icon = L.divIcon({
+                    html: `<i class="fas fa-video" style="color: ${iconColor}; font-size: 20px;"></i>`,
+                    iconSize: [30, 30],
+                    className: 'custom-camera-icon'
+                });
+
+                const marker = L.marker([camera.lat, camera.lng], { icon: icon })
+                    .addTo(map)
+                    .bindPopup(`
+                        <div class="camera-popup" style="font-family: 'Cairo', sans-serif;">
+                            <h6 style="color: #f39c12; font-weight: 700;">${camera.name}</h6>
+                            <p><strong>الحالة:</strong> <span class="status-${camera.status}">${camera.status === 'online' ? 'متصلة' : 'منقطعة'}</span></p>
+                            <p>${camera.description}</p>
+                            <button class="btn btn-primary btn-sm" onclick="viewCameraFeed(${camera.id})" style="font-family: 'Cairo', sans-serif; font-weight: 600;">
+                                <i class="fas fa-eye me-1"></i>عرض البث
+                            </button>
+                        </div>
+                    `);
+
+                marker.on('click', () => {
+                    if (hasPermission('view')) {
+                        viewCameraFeed(camera.id);
+                    } else {
+                        showAlert('ليس لديك صلاحية لعرض الكاميرات', 'warning');
+                    }
+                });
+
+                markers.push(marker);
+            });
+        }
+
+        // Authentication functions
+        function performLogin() {
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const role = document.getElementById('userRole').value;
+            
+            if (validCredentials[username] && 
+                validCredentials[username].password === password && 
+                validCredentials[username].role === role) {
+                
+                currentUser = {
+                    username: username,
+                    role: role,
+                    name: validCredentials[username].name
+                };
+                
+                document.getElementById('currentUser').textContent = currentUser.name;
+                document.getElementById('loginError').style.display = 'none';
+                
+                // Hide login modal
+                bootstrap.Modal.getInstance(document.getElementById('loginModal')).hide();
+                
+                // Update UI based on permissions
+                updateUIPermissions();
+                
+                showAlert('تم تسجيل الدخول بنجاح', 'success');
+            } else {
+                document.getElementById('loginError').style.display = 'block';
+            }
+        }
+
+        function hasPermission(action) {
+            if (!currentUser) return false;
+            return userPermissions[currentUser.role].includes(action);
+        }
+
+        function updateUIPermissions() {
+            // Hide/show buttons based on permissions
+            const addButton = document.querySelector('button[onclick="showAddCameraModal()"]');
+            const exportButton = document.querySelector('button[onclick="exportData()"]');
+            const settingsButton = document.querySelector('button[onclick="showSettings()"]');
+            
+            if (!hasPermission('add')) {
+                addButton.style.display = 'none';
+            }
+            if (!hasPermission('export')) {
+                exportButton.style.display = 'none';
+            }
+            if (!hasPermission('settings')) {
+                settingsButton.style.display = 'none';
+            }
+        }
+
+        // Enhanced camera functions
+        function recordFeed() {
+            if (!hasPermission('view')) {
+                showAlert('ليس لديك صلاحية للتسجيل', 'warning');
+                return;
+            }
+            
+            if (!isRecording) {
+                isRecording = true;
+                document.getElementById('recordingStatus').style.display = 'block';
+                
+                // Simulate recording (in production, this would start actual recording)
+                recordingInterval = setInterval(() => {
+                    console.log('Recording frame...');
+                }, 1000);
+                
+                showAlert('بدأ التسجيل بنجاح', 'success');
+            } else {
+                isRecording = false;
+                document.getElementById('recordingStatus').style.display = 'none';
+                clearInterval(recordingInterval);
+                
+                // Simulate saving recording
+                const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+                const filename = `recording_${currentCamera.name}_${timestamp}.mp4`;
+                
+                showAlert(`تم حفظ التسجيل: ${filename}`, 'info');
+            }
+        }
+
+        function takeSnapshot() {
+            if (!hasPermission('view')) {
+                showAlert('ليس لديك صلاحية لأخذ لقطات', 'warning');
+                return;
+            }
+            
+            // Simulate taking snapshot
+            const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+            const filename = `snapshot_${currentCamera.name}_${timestamp}.jpg`;
+            
+            // Create a canvas to simulate screenshot
+            const canvas = document.createElement('canvas');
+            canvas.width = 640;
+            canvas.height = 480;
+            const ctx = canvas.getContext('2d');
+            
+            // Fill with camera feed simulation
+            ctx.fillStyle = '#2c3e50';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = '#f39c12';
+            ctx.font = '20px Cairo';
+            ctx.textAlign = 'center';
+            ctx.fillText(currentCamera.name, canvas.width/2, canvas.height/2);
+            ctx.fillText(new Date().toLocaleString('ar-EG'), canvas.width/2, canvas.height/2 + 30);
+            
+            // Download the snapshot
+            canvas.toBlob(blob => {
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = filename;
+                link.click();
+                URL.revokeObjectURL(url);
+            });
+            
+            showAlert(`تم حفظ اللقطة: ${filename}`, 'success');
+        }
+
+        function showSettings() {
+            if (!hasPermission('settings')) {
+                showAlert('ليس لديك صلاحية للوصول للإعدادات', 'warning');
+                return;
+            }
+            
+            const modal = new bootstrap.Modal(document.getElementById('settingsModal'));
+            modal.show();
+        }
+
+        function saveSettings() {
+            const refreshRate = document.getElementById('refreshRate').value;
+            const streamQuality = document.getElementById('streamQuality').value;
+            const soundAlerts = document.getElementById('soundAlerts').checked;
+            const emailAlerts = document.getElementById('emailAlerts').checked;
+            const motionDetection = document.getElementById('motionDetection').checked;
+            
+            // Save settings to localStorage (in production, save to backend)
+            const settings = {
+                refreshRate,
+                streamQuality,
+                soundAlerts,
+                emailAlerts,
+                motionDetection
+            };
+            
+            localStorage.setItem('surveillanceSettings', JSON.stringify(settings));
+            
+            bootstrap.Modal.getInstance(document.getElementById('settingsModal')).hide();
+            showAlert('تم حفظ الإعدادات بنجاح', 'success');
+        }
+
+        function loadSettings() {
+            const savedSettings = localStorage.getItem('surveillanceSettings');
+            if (savedSettings) {
+                const settings = JSON.parse(savedSettings);
+                document.getElementById('refreshRate').value = settings.refreshRate || 30;
+                document.getElementById('streamQuality').value = settings.streamQuality || 'medium';
+                document.getElementById('soundAlerts').checked = settings.soundAlerts !== false;
+                document.getElementById('emailAlerts').checked = settings.emailAlerts !== false;
+                document.getElementById('motionDetection').checked = settings.motionDetection !== false;
+            }
+        }
+
+        function showAlert(message, type = 'info') {
+            // Create alert element
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
+            alertDiv.style.cssText = 'top: 20px; left: 50%; transform: translateX(-50%); z-index: 9999; min-width: 300px;';
+            alertDiv.innerHTML = `
+                <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'warning' ? 'exclamation-triangle' : 'info-circle'} me-2"></i>
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            alertDiv.style.fontFamily = 'Cairo, sans-serif';
+            alertDiv.style.fontWeight = '600';
+            
+            document.body.appendChild(alertDiv);
+            
+            // Auto remove after 3 seconds
+            setTimeout(() => {
+                if (alertDiv.parentNode) {
+                    alertDiv.remove();
+                }
+            }, 3000);
+        }
+
+        // Update camera list in sidebar
+        function updateCameraList() {
+            const cameraList = document.getElementById('cameraList');
+            cameraList.innerHTML = '';
+
+            cameras.forEach(camera => {
+                const cameraItem = document.createElement('div');
+                cameraItem.className = 'camera-item';
+                cameraItem.onclick = () => viewCameraFeed(camera.id);
+                
+                cameraItem.innerHTML = `
+                    <div class="camera-name">${camera.name}</div>
+                    <div class="camera-status">
+                        <i class="fas fa-circle status-${camera.status}"></i>
+                        <span class="status-${camera.status}">${camera.status.toUpperCase()}</span>
+                    </div>
+                    <small class="text-muted">${camera.description}</small>
+                `;
+                
+                cameraList.appendChild(cameraItem);
+            });
+
+            // Update statistics
+            updateStatistics();
+        }
+
+        // Update statistics
+        function updateStatistics() {
+            const total = cameras.length;
+            const online = cameras.filter(c => c.status === 'online').length;
+            const offline = total - online;
+
+            document.getElementById('totalCameras').textContent = total;
+            document.getElementById('onlineCameras').textContent = online;
+            document.getElementById('offlineCameras').textContent = offline;
+        }
+
+        // View camera feed
+        function viewCameraFeed(cameraId) {
+            const camera = cameras.find(c => c.id === cameraId);
+            if (!camera) return;
+
+            currentCamera = camera;
+            
+            document.getElementById('cameraModalTitle').innerHTML = `
+                <i class="fas fa-video me-2"></i>
+                ${camera.name}
+            `;
+            
+            document.getElementById('streamUrl').textContent = camera.streamUrl;
+            
+            // Simulate video feed (in production, you'd embed actual stream)
+            const videoContainer = document.getElementById('videoContainer');
+            if (camera.status === 'online') {
+                videoContainer.innerHTML = `
+                    <video controls autoplay muted style="width: 100%; height: 300px; background: #000;">
+                        <source src="${camera.streamUrl}" type="video/mp4">
+                        <div class="video-placeholder">
+                            <div>
+                                <i class="fas fa-exclamation-triangle fa-2x mb-2"></i>
+                                <div>Stream format not supported by browser</div>
+                                <small>URL: ${camera.streamUrl}</small>
+                            </div>
+                        </div>
+                    </video>
+                `;
+            } else {
+                videoContainer.innerHTML = `
+                    <div class="video-placeholder">
+                        <div>
+                            <i class="fas fa-exclamation-circle fa-3x mb-3 text-danger"></i>
+                            <div>Camera Offline</div>
+                            <small>Unable to connect to stream</small>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            updateFeedTimestamp();
+            
+            const modal = new bootstrap.Modal(document.getElementById('cameraModal'));
+            modal.show();
+        }
+
+        // Show add camera modal
+        function showAddCameraModal() {
+            // Pre-fill with map center coordinates
+            const center = map.getCenter();
+            document.getElementById('cameraLat').value = center.lat.toFixed(6);
+            document.getElementById('cameraLng').value = center.lng.toFixed(6);
+            
+            const modal = new bootstrap.Modal(document.getElementById('addCameraModal'));
+            modal.show();
+        }
+
+        // Add new camera
+        function addCamera() {
+            if (!hasPermission('add')) {
+                showAlert('ليس لديك صلاحية لإضافة كاميرات', 'warning');
+                return;
+            }
+            
+            const form = document.getElementById('addCameraForm');
+            if (!form.checkValidity()) {
+                form.reportValidity();
+                return;
+            }
+
+            const newCamera = {
+                id: Math.max(...cameras.map(c => c.id)) + 1,
+                name: document.getElementById('cameraName').value,
+                lat: parseFloat(document.getElementById('cameraLat').value),
+                lng: parseFloat(document.getElementById('cameraLng').value),
+                streamUrl: document.getElementById('cameraUrl').value || `rtsp://192.168.1.${100 + cameras.length}:554/stream1`,
+                status: 'online',
+                description: document.getElementById('cameraDescription').value || 'كاميرا مراقبة جديدة',
+                zone: document.getElementById('cameraZone').value
+            };
+
+            cameras.push(newCamera);
+            addCamerasToMap();
+            updateCameraList();
+            
+            // Close modal and reset form
+            bootstrap.Modal.getInstance(document.getElementById('addCameraModal')).hide();
+            form.reset();
+            
+            showAlert('تم إضافة الكاميرا بنجاح!', 'success');
+        }
+
+        // Utility functions
+        function refreshMap() {
+            addCamerasToMap();
+            updateCameraList();
+            showAlert('تم تحديث الخريطة بنجاح!', 'success');
+        }
+
+        function refreshFeed() {
+            if (currentCamera) {
+                viewCameraFeed(currentCamera.id);
+                showAlert('تم تحديث البث', 'info');
+            }
+        }
+
+        function toggleFullscreen() {
+            const videoContainer = document.getElementById('videoContainer');
+            if (videoContainer.requestFullscreen) {
+                videoContainer.requestFullscreen();
+            } else if (videoContainer.webkitRequestFullscreen) {
+                videoContainer.webkitRequestFullscreen();
+            } else if (videoContainer.msRequestFullscreen) {
+                videoContainer.msRequestFullscreen();
+            }
+        }
+
+        function updateFeedTimestamp() {
+            const now = new Date();
+            document.getElementById('feedTimestamp').textContent = now.toLocaleString('ar-EG');
+        }
+
+        function exportData() {
+            if (!hasPermission('export')) {
+                showAlert('ليس لديك صلاحية لتصدير البيانات', 'warning');
+                return;
+            }
+            
+            const exportData = {
+                cameras: cameras,
+                exportDate: new Date().toISOString(),
+                exportedBy: currentUser.name,
+                totalCameras: cameras.length,
+                onlineCameras: cameras.filter(c => c.status === 'online').length,
+                offlineCameras: cameras.filter(c => c.status === 'offline').length
+            };
+            
+            const dataStr = JSON.stringify(exportData, null, 2);
+            const dataBlob = new Blob([dataStr], {type: 'application/json'});
+            const url = URL.createObjectURL(dataBlob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `surveillance_cameras_${new Date().toISOString().split('T')[0]}.json`;
+            link.click();
+            URL.revokeObjectURL(url);
+            
+            showAlert('تم تصدير البيانات بنجاح', 'success');
+        }
+
+        function logout() {
+            if (confirm('هل أنت متأكد من تسجيل الخروج؟')) {
+                currentUser = null;
+                document.getElementById('currentUser').textContent = 'غير مسجل';
+                
+                // Reset form
+                document.getElementById('loginForm').reset();
+                document.getElementById('loginError').style.display = 'none';
+                
+                // Show login modal
+                const loginModal = new bootstrap.Modal(document.getElementById('loginModal'));
+                loginModal.show();
+                
+                showAlert('تم تسجيل الخروج بنجاح', 'info');
+            }
+        }
+
+        function updateLastUpdate() {
+            document.getElementById('lastUpdate').textContent = new Date().toLocaleString('ar-EG');
+        }
+
+        // Show add camera modal
+        function showAddCameraModal() {
+            if (!hasPermission('add')) {
+                showAlert('ليس لديك صلاحية لإضافة كاميرات', 'warning');
+                return;
+            }
+            
+            // Pre-fill with map center coordinates
+            const center = map.getCenter();
+            document.getElementById('cameraLat').value = center.lat.toFixed(6);
+            document.getElementById('cameraLng').value = center.lng.toFixed(6);
+            
+            const modal = new bootstrap.Modal(document.getElementById('addCameraModal'));
+            modal.show();
+        }
+
+        // Enhanced view camera feed function
+        function viewCameraFeed(cameraId) {
+            if (!hasPermission('view')) {
+                showAlert('ليس لديك صلاحية لعرض الكاميرات', 'warning');
+                return;
+            }
+            
+            const camera = cameras.find(c => c.id === cameraId);
+            if (!camera) return;
+
+            currentCamera = camera;
+            
+            document.getElementById('cameraModalTitle').innerHTML = `
+                <i class="fas fa-video me-2"></i>
+                ${camera.name}
+            `;
+            
+            document.getElementById('streamUrl').textContent = camera.streamUrl;
+            
+            // Reset recording status
+            isRecording = false;
+            document.getElementById('recordingStatus').style.display = 'none';
+            
+            // Simulate video feed (in production, you'd embed actual stream)
+            const videoContainer = document.getElementById('videoContainer');
+            if (camera.status === 'online') {
+                videoContainer.innerHTML = `
+                    <div class="video-placeholder" style="background: linear-gradient(45deg, #1e3c72, #2a5298); position: relative;">
+                        <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center;">
+                            <i class="fas fa-video fa-3x mb-3 text-success"></i>
+                            <div style="font-family: 'Cairo', sans-serif; font-weight: 600; color: #ffffff;">البث المباشر متاح</div>
+                            <small class="text-light" style="font-family: 'Cairo', sans-serif;">محاكاة البث من: ${camera.streamUrl}</small>
+                        </div>
+                        <div style="position: absolute; top: 10px; right: 10px; background: rgba(0,0,0,0.7); padding: 5px 10px; border-radius: 5px;">
+                            <small style="color: #27ae60; font-family: 'Cairo', sans-serif;">
+                                <i class="fas fa-circle me-1"></i>مباشر
+                            </small>
+                        </div>
+                    </div>
+                `;
+            } else {
+                videoContainer.innerHTML = `
+                    <div class="video-placeholder">
+                        <div>
+                            <i class="fas fa-exclamation-circle fa-3x mb-3 text-danger"></i>
+                            <div style="font-family: 'Cairo', sans-serif; font-weight: 600;">الكاميرا غير متصلة</div>
+                            <small style="font-family: 'Cairo', sans-serif;">غير قادر على الاتصال بالبث</small>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            updateFeedTimestamp();
+            
+            const modal = new bootstrap.Modal(document.getElementById('cameraModal'));
+            modal.show();
+        }
+
+        // Initialize everything when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            // Show login modal first
+            const loginModal = new bootstrap.Modal(document.getElementById('loginModal'));
+            loginModal.show();
+            
+            // Initialize map and other components
+            initMap();
+            updateCameraList();
+            updateLastUpdate();
+            loadSettings();
+            
+            // Update timestamp every minute
+            setInterval(updateLastUpdate, 60000);
+            
+            // Update feed timestamp every second when modal is open
+            setInterval(() => {
+                if (document.getElementById('cameraModal').classList.contains('show')) {
+                    updateFeedTimestamp();
+                }
+            }, 1000);
+            
+            // Simulate camera status changes
+            setInterval(() => {
+                if (Math.random() < 0.1) { // 10% chance every 30 seconds
+                    const randomCamera = cameras[Math.floor(Math.random() * cameras.length)];
+                    randomCamera.status = randomCamera.status === 'online' ? 'offline' : 'online';
+                    addCamerasToMap();
+                    updateCameraList();
+                }
+            }, 30000);
+        });
+
+        // Handle map clicks for adding cameras
+        document.addEventListener('DOMContentLoaded', function() {
+            setTimeout(() => {
+                if (map) {
+                    map.on('click', function(e) {
+                        if (currentUser && hasPermission('add')) {
+                            if (confirm('هل تريد إضافة كاميرا جديدة في هذا الموقع؟')) {
+                                document.getElementById('cameraLat').value = e.latlng.lat.toFixed(6);
+                                document.getElementById('cameraLng').value = e.latlng.lng.toFixed(6);
+                                showAddCameraModal();
+                            }
+                        }
+                    });
+                }
+            }, 1000);
+        });
+
+        // Handle Enter key in login form
+        document.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter' && document.getElementById('loginModal').classList.contains('show')) {
+                performLogin();
+            }
+        });
+    </script>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'98ded19e75b8794b',t:'MTc2MDM1ODMxOC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
